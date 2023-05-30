@@ -1,119 +1,97 @@
-  ////////////////////////////////////////////////////////////////////////////////////////////
-// DFS
-#include <iostream> #include <vector>
-#include <stack> #include <omp.h>
-using namespace std;
-const int MAX = 100000;
-vector<int> graph[MAX];s
-bool visited[MAX];
-void dfs(int node) {
-	stack<int> s;
-	s.push(node);
-	while (!s.empty()) {
-    	int curr_node = s.top();
-    	s.pop();
-    	if (!visited[curr_node]) {
-        	visited[curr_node] = true;
-        	if (visited[curr_node]) {
-        	cout << curr_node << " ";  }
-        	#pragma omp  parallel for
-        	for (int i = 0; i < graph[curr_node].size(); i++) {
-            	int adj_node = graph[curr_node][i];
-            	if (!visited[adj_node]) {
-                	s.push(adj_node);
-            	}
-        	}}}}
-int main() {
-	int n, m, start_node;
-	cout << "Enter No of Node,Edges,and start node:" ;
-	cin >> n >> m >> start_node;
-         //n: node,m:edges
-cout << "Enter Pair of edges:" ;
-	for (int i = 0; i < m; i++) {
-    	int u, v	
-    	cin >> u >> v;
-//u and v: Pair of edges
-    	graph[u].push_back(v);
-    	graph[v].push_back(u);
-	} #pragma omp parallel for
-	for (int i = 0; i < n; i++) {
-    	visited[i] = false;
-	}
-	dfs(start_node);
-  
-  return 0 ; }
-  ////////////////////////////////////////////////////////////////////////////////////////////
-//BFS  - 1
-#include<iostream>
-#include<stdlib.h>
-#include<queue>
-using namespace std;
-class node{
-public:
-    node *left, *right;
-    int data; };
-class Breadthfs {
-public:
-    node *insert(node *, int);
-    void bfs(node *);  };
-node *Breadthfs::insert(node *root, int data){
-    if (!root){
-        root = new node;
-        root->left = NULL;
-        root->right = NULL;
-        root->data = data;
-        return root; }
-    queue<node *> q;
-    q.push(root);
-    while (!q.empty()){
-        node *temp = q.front();
-        q.pop();
-        if (temp->left == NULL){
-            temp->left = new node;
-            temp->left->left = NULL;
-            temp->left->right = NULL;
-            temp->left->data = data;
-            return root; } else {
-            q.push(temp->left);  }
-        if (temp->right == NULL){
-            temp->right = new node;
-            temp->right->left = NULL;
-            temp->right->right = NULL;
-            temp->right->data = data;
-            return root; }
-        else { q.push(temp->right);}
- }}
-void Breadthfs::bfs(node *head){
-    queue<node *> q;
-//BFS - 2    
-q.push(head);
-    while (!q.empty()){
-        int qSize = q.size();
-        for (int i = 0; i < qSize; i++) {
-            node *currNode = q.front();
-            q.pop();
-            cout << "\t" << currNode->data;
-            if (currNode->left)
-                q.push(currNode->left);
-            if (currNode->right)
-                q.push(currNode->right);
-       }}}
+//BFS and DFS using openMP
 
-int main(){
-    node *root = NULL;
-    int data;
-    char ans; 
-do{
-        cout << "\nEnter data: ";
-        cin >> data;
-        Breadthfs obj;
-        root = obj.insert(root, data);
-        cout << "Do you want to insert one more node? (y/n): ";
-        cin >> ans;
-    } while (ans == 'y' || ans == 'Y');
-    Breadthfs obj;
-    obj.bfs(root);
-    return 0; }
+#include <iostream>
+#include <queue>
+#include <stack>
+#include <thread>
+
+using namespace std;
+
+const int MAX_VERTICES = 5;
+
+// Perform parallel Breadth-First Search
+void parallelBFS(int graph[MAX_VERTICES][MAX_VERTICES], int source) {
+    bool visited[MAX_VERTICES] = {false};
+    visited[source] = true;
+
+    queue<int> bfsQueue;
+    bfsQueue.push(source);
+
+    while (!bfsQueue.empty()) {
+        int current = bfsQueue.front();
+        bfsQueue.pop();
+
+        cout << "Visiting vertex: " << current << endl;
+
+        vector<thread> threads;
+
+        for (int i = 0; i < MAX_VERTICES; i++) {
+            if (graph[current][i] == 1 && !visited[i]) {
+                visited[i] = true;
+                bfsQueue.push(i);
+
+                threads.emplace_back([&]() {
+                    cout << "Visiting vertex: " << i << endl;
+                });
+            }
+        }
+
+        for (auto& thread : threads) {
+            thread.join();
+        }
+    }
+}
+
+// Perform parallel Depth-First Search
+void parallelDFS(int graph[MAX_VERTICES][MAX_VERTICES], int source) {
+    bool visited[MAX_VERTICES] = {false};
+    visited[source] = true;
+
+    stack<int> dfsStack;
+    dfsStack.push(source);
+
+    while (!dfsStack.empty()) {
+        int current = dfsStack.top();
+        dfsStack.pop();
+
+        cout << "Visiting vertex: " << current << endl;
+
+        vector<thread> threads;
+
+        for (int i = 0; i < MAX_VERTICES; i++) {
+            if (graph[current][i] == 1 && !visited[i]) {
+                visited[i] = true;
+                dfsStack.push(i);
+
+                threads.emplace_back([&]() {
+                    parallelDFS(graph, i);
+                });
+            }
+        }
+
+        for (auto& thread : threads) {
+            thread.join();
+        }
+    }
+}
+
+int main() {
+    int graph[MAX_VERTICES][MAX_VERTICES] = {
+        {0, 1, 1, 0, 0},
+        {1, 0, 0, 1, 1},
+        {1, 0, 0, 0, 0},
+        {0, 1, 0, 0, 0},
+        {0, 1, 0, 0, 0}
+    };
+
+    cout << "Parallel BFS traversal:" << endl;
+    parallelBFS(graph, 0);
+
+    cout << "\nParallel DFS traversal:" << endl;
+    parallelDFS(graph, 0);
+
+    return 0;
+}
 ////////////////////////////////////////////////////////////////////////////////////////////
 // merge sort – 1           
 #include<iostream> #include<stdlib.h>
